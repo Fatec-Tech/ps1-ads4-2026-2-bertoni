@@ -1,9 +1,11 @@
 const pacientes = [];
 
+let quantidadeJson = 0;
+let quantidadeSessao = 0;
+
 const formulario = document.getElementById('form-paciente');
 const tabela = document.getElementById('tabela-pacientes');
 const mensagemCarregando = document.getElementById('carregando');
-
 function adicionarPaciente(nome, email, nascimento) {
 	pacientes.push({ nome, email, nascimento });
 }
@@ -30,6 +32,12 @@ function formatarData(dataISO) {
 // Nova função: busca os pacientes iniciais a partir do arquivo JSON
 async function carregarPacientesIniciais() {
 	try {
+		await new Promise(function(resolve) {
+    		setTimeout(resolve, 1000);
+		});// Simula atraso de 1 segundo
+
+
+
 		const resposta = await fetch('data/pacientes.json');
 		console.log(resposta);
 
@@ -39,6 +47,15 @@ async function carregarPacientesIniciais() {
 		}
 
 		const dados = await resposta.json(); // converte a resposta em objeto JS
+
+		quantidadeJson = dados.length;
+
+		if (quantidadeJson === 0) {
+			mensagemCarregando.textContent =
+				'Nenhum paciente cadastrado ainda.';
+			tabela.closest('table').style.display = 'none';
+			return; // sai da função sem tentar renderizar a tabela
+		}
 
 		// Adiciona cada paciente vindo do arquivo ao nosso array local
 		dados.forEach((paciente) => {
@@ -53,8 +70,10 @@ async function carregarPacientesIniciais() {
 		return; // sai da função sem esconder a mensagem de erro
 	}
 
-	mensagemCarregando.textContent =
-		'Dados carregados com sucesso.';
+	mensagemCarregando.innerHTML =
+		`Dados carregados com sucesso.
+		<br>Quantidade de pacientes Json: <strong>${quantidadeJson}</strong>
+		<br>Quantidade pacientes cadastrados: <strong>${quantidadeSessao}</strong>.`;
 	// mensagemCarregando.style.display = 'none'; // esconde "Carregando..." em caso de sucesso
 }
 
@@ -66,6 +85,14 @@ formulario.addEventListener('submit', (event) => {
 	const nascimento = document.getElementById('nascimento').value;
 
 	adicionarPaciente(nome, email, nascimento);
+
+	quantidadeSessao++;
+
+	mensagemCarregando.innerHTML =
+    `Dados carregados com sucesso.
+    <br>Quantidade de pacientes JSON: <strong>${quantidadeJson}</strong>
+    <br>Quantidade pacientes cadastrados: <strong>${quantidadeSessao}</strong>.`;
+
 	renderizarTabela();
 
 	formulario.reset();
