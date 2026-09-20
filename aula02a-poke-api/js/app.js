@@ -66,7 +66,10 @@ function renderPokemonCard(pokemon) {
 
 	const cardHTML = `
         <div class="col">
-          <div class="card h-100 shadow-sm pokemon-card border-0">
+          <div class="card h-100 shadow-sm pokemon-card border-0"
+		       style="cursor: pointer;"
+  			   onclick="openPokemonModal(${pokemon.id})">
+		
             <div class="text-center p-3 bg-white rounded-top">
               <img src="${imageUrl}" class="card-img-top img-fluid" style="max-height: 160px; object-fit: contain;" alt="${pokemon.name}">
             </div>
@@ -94,6 +97,139 @@ function renderPokemonCard(pokemon) {
       `;
 
 	pokemonGrid.insertAdjacentHTML('beforeend', cardHTML);
+}
+
+async function openPokemonModal(id) {
+	const modalElement = document.getElementById('pokemonModal');
+	const modal = new bootstrap.Modal(modalElement);
+
+	const modalTitle = document.getElementById('pokemonModalTitle');
+	const modalBody = document.getElementById('pokemonModalBody');
+
+	// Abre o modal e mostra loading
+	modalTitle.textContent = 'Carregando...';
+
+	modalBody.innerHTML = `
+		<div class="text-center py-4">
+			<div class="spinner-border text-danger" role="status">
+				<span class="visually-hidden">Carregando...</span>
+			</div>
+		</div>
+	`;
+
+	modal.show();
+
+	try {
+		const pokemon = await fetchPokemonData(String(id));
+
+		modalTitle.textContent = pokemon.name;
+
+		const statNames = {
+			hp: 'HP',
+			attack: 'Ataque',
+			defense: 'Defesa',
+			speed: 'Velocidade'
+		};
+
+		const statsHTML = pokemon.stats
+			.filter((item) => statNames[item.stat.name])
+			.map((item) => {
+				const valor = item.base_stat;
+
+				return `
+					<div class="mb-2">
+						<small class="fw-bold">
+							${statNames[item.stat.name]}: ${valor}
+						</small>
+
+						<div class="progress" style="height: 10px;">
+							<div
+								class="progress-bar bg-danger"
+								style="width: ${Math.min(valor, 100)}%;">
+							</div>
+						</div>
+					</div>
+				`;
+			})
+			.join('');
+
+		const spritesHTML = `
+			<div class="row text-center">
+				<div class="col-6 col-md-3">
+					<p class="mb-1">Frente Normal</p>
+					<img src="${pokemon.sprites.front_default}" class="img-fluid">
+				</div>
+
+				<div class="col-6 col-md-3">
+					<p class="mb-1">Costas Normal</p>
+					<img src="${pokemon.sprites.back_default}" class="img-fluid">
+				</div>
+
+				<div class="col-6 col-md-3">
+					<p class="mb-1">Frente<br>Shiny</p>
+					<img src="${pokemon.sprites.front_shiny}" class="img-fluid">
+				</div>
+
+				<div class="col-6 col-md-3">
+					<p class="mb-1">Costas<br>Shiny</p>
+					<img src="${pokemon.sprites.back_shiny}" class="img-fluid">
+				</div>
+			</div>
+		`;
+
+		const cryUrl = pokemon.cries.latest || pokemon.cries.legacy;
+
+		modalBody.innerHTML = `
+			<div class="text-center">
+				<img
+					src="${pokemon.sprites.other['official-artwork'].front_default}"
+					class="img-fluid mb-3"
+					style="max-height: 200px; object-fit: contain;"
+					alt="${pokemon.name}"
+				>
+
+				<h6>Habilidades</h6>
+				<p>
+					${pokemon.abilities
+						.map((item) => item.ability.name)
+						.join(', ')}
+				</p>
+
+				<hr>
+
+				<h6>Status Base</h6>
+				${statsHTML}
+
+				<hr>
+
+				<h6>Sprites</h6>
+				${spritesHTML}
+
+				<hr>
+
+				<h6>Som do Pokémon</h6>
+
+				${
+					cryUrl
+						? `<audio controls class="w-100">
+								<source src="${cryUrl}">
+						   </audio>`
+						: `<p class="text-muted">Áudio não disponível.</p>`
+				}
+			</div>
+		`;
+
+	} catch (error) {
+		modalTitle.textContent = 'Erro';
+
+		modalBody.innerHTML = `
+			<div class="alert alert-warning text-center">
+				Não foi possível carregar os detalhes deste Pokémon.
+			</div>
+		`;
+
+		console.error(error);
+	}
 }
 
 // Busca específica por nome ou ID
