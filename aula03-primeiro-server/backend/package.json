@@ -1,0 +1,9 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Servidor Node.js do projeto de cadastro de pacientes",
+  "scripts": {
+    "test": "node server.js"
+  }
+}
