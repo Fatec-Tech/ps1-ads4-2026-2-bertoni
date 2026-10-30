@@ -20,7 +20,26 @@ let proximoId = 4;
 
 // READ (lista) — GET /pacientes
 app.get('/pacientes', (req, res) => {
-  res.json(pacientes);
+    const nome = req.query.nome;
+
+    if (nome) {
+        const pacientesFiltrados = pacientes.filter((paciente) => {
+            return paciente.nome
+                .toLowerCase()
+                .includes(nome.toLowerCase());
+        });
+
+        return res.json(pacientesFiltrados);
+    }
+
+    res.json(pacientes);
+});
+
+// READ (total) — GET /pacientes/total
+app.get('/pacientes/total', (req, res) => {
+    res.json({
+        total: pacientes.length
+    });
 });
 
 // READ (um) — GET /pacientes/:id
@@ -35,6 +54,7 @@ app.get('/pacientes/:id', (req, res) => {
   res.json(paciente);
 });
 
+
 // CREATE — POST /pacientes
 app.post('/pacientes', (req, res) => {
   const { nome, email, nascimento } = req.body ?? {};
@@ -43,6 +63,16 @@ app.post('/pacientes', (req, res) => {
     return res.status(400).json({
       erro: 'Nome, e-mail e nascimento são obrigatórios'
     });
+  }
+
+  const emailExistente = pacientes.some((paciente) => {
+    return paciente.email === email;
+});
+
+  if (emailExistente) {
+      return res.status(409).json({
+          erro: 'E-mail já cadastrado'
+      });
   }
 
   const novoPaciente = {
