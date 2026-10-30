@@ -17,7 +17,7 @@ const botaoSalvar = document.getElementById('btn-salvar');
 const botaoCancelar = document.getElementById('btn-cancelar');
 
 // Endereço da API criada na Aula 03
-const URL_API = 'http://localhost:3000/pacientes';
+const URL_API = 'https://api-clinica-alexandre-bertoni.onrender.com/pacientes';
 
 function criarCelula(texto) {
         const celula = document.createElement('td');
