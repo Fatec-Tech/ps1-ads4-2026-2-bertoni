@@ -1,136 +1,182 @@
+
 const express = require('express');
 const cors = require('cors');
+const pool = require('./db');
 
 const app = express();
 
+app.use(cors());
+app.use(express.json());
 
-// area de desenvolvimento dos endpoints
-
-// Middlewares: rodam antes de todas as rotas
-app.use(cors());          // libera o acesso do frontend (outra origem)
-app.use(express.json());  // converte o body JSON em objeto, disponível em req.body
-
-// "Banco de dados" em memória (será substituído na Aula 5)
-const pacientes = [
-  { id: 1, nome: 'Maria Silva', email: 'maria.silva@email.com', nascimento: '1990-04-12' },
-  { id: 2, nome: 'João Pereira', email: 'joao.pereira@email.com', nascimento: '1985-11-30' },
-  { id: 3, nome: 'Ana Costa', email: 'ana.costa@email.com', nascimento: '2001-07-08' },
-];
-let proximoId = 4;
-
-// READ (lista) — GET /pacientes
-app.get('/pacientes', (req, res) => {
+// GET - Listar pacientes e filtrar por nome
+app.get('/pacientes', async (req, res) => {
+  try {
     const nome = req.query.nome;
 
     if (nome) {
-        const pacientesFiltrados = pacientes.filter((paciente) => {
-            return paciente.nome
-                .toLowerCase()
-                .includes(nome.toLowerCase());
-        });
+      const resultado = await pool.query(
+        'SELECT * FROM pacientes WHERE nome ILIKE $1 ORDER BY id',
+        [`%${nome}%`]
+      );
 
-        return res.json(pacientesFiltrados);
+      return res.json(resultado.rows);
     }
 
-    res.json(pacientes);
-});
+    const resultado = await pool.query(
+      'SELECT * FROM pacientes ORDER BY id'
+    );
 
-// READ (total) — GET /pacientes/total
-app.get('/pacientes/total', (req, res) => {
-    res.json({
-        total: pacientes.length
-    });
-});
-
-// READ (um) — GET /pacientes/:id
-app.get('/pacientes/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const paciente = pacientes.find((p) => p.id === id);
-
-  if (!paciente) {
-    return res.status(404).json({ erro: 'Paciente não encontrado' });
+    res.json(resultado.rows);
+  } catch (erro) {
+    console.error(erro);
+    res.status(500).json({ erro: 'Erro ao buscar pacientes' });
   }
-
-  res.json(paciente);
 });
 
+// GET - Total de pacientes
+app.get('/pacientes/total', async (req, res) => {
+  try {
+    const resultado = await pool.query(
+      'SELECT COUNT(*)::integer AS total FROM pacientes'
+    );
 
-// CREATE — POST /pacientes
-app.post('/pacientes', (req, res) => {
-  const { nome, email, nascimento } = req.body ?? {};
-
-  if (!nome || !email || !nascimento) {
-    return res.status(400).json({
-      erro: 'Nome, e-mail e nascimento são obrigatórios'
-    });
+    res.json(resultado.rows[0]);
+  } catch (erro) {
+    console.error(erro);
+    res.status(500).json({ erro: 'Erro ao contar pacientes' });
   }
-
-  const emailExistente = pacientes.some((paciente) => {
-    return paciente.email === email;
 });
 
-  if (emailExistente) {
-      return res.status(409).json({
-          erro: 'E-mail já cadastrado'
+// GET - Buscar paciente por ID
+app.get('/pacientes/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return res.status(400).json({ erro: 'ID inválido' });
+    }
+
+    const resultado = await pool.query(
+      'SELECT * FROM pacientes WHERE id = $1',
+      [id]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({
+        erro: 'Paciente não encontrado'
       });
+    }
+
+    res.json(resultado.rows[0]);
+  } catch (erro) {
+    console.error(erro);
+    res.status(500).json({ erro: 'Erro ao buscar paciente' });
   }
-
-  const novoPaciente = {
-    id: proximoId++,
-    nome,
-    email,
-    nascimento
-  };
-
-  pacientes.push(novoPaciente);
-
-  res.status(201).json(novoPaciente);
 });
 
-// UPDATE — PUT /pacientes/:id
-app.put('/pacientes/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const paciente = pacientes.find((p) => p.id === id);
+// POST - Cadastrar paciente
+app.post('/pacientes', async (req, res) => {
+  try {
+    const { nome, email, nascimento } = req.body ?? {};
 
-  if (!paciente) {
-    return res.status(404).json({
-      erro: 'Paciente não encontrado'
-    });
+    if (!nome || !email || !nascimento) {
+      return res.status(400).json({
+        erro: 'Nome, e-mail e nascimento são obrigatórios'
+      });
+    }
+
+    const resultado = await pool.query(
+      `INSERT INTO pacientes (nome, email, nascimento)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [nome, email, nascimento]
+    );
+
+    res.status(201).json(resultado.rows[0]);
+  } catch (erro) {
+    if (erro.code === '23505') {
+      return res.status(409).json({
+        erro: 'E-mail já cadastrado'
+      });
+    }
+
+    console.error(erro);
+    res.status(500).json({ erro: 'Erro ao cadastrar paciente' });
   }
-
-  const { nome, email, nascimento } = req.body ?? {};
-
-  if (!nome || !email || !nascimento) {
-    return res.status(400).json({
-      erro: 'Nome, e-mail e nascimento são obrigatórios'
-    });
-  }
-
-  paciente.nome = nome;
-  paciente.email = email;
-  paciente.nascimento = nascimento;
-
-  res.json(paciente);
 });
 
-// DELETE — DELETE /pacientes/:id
-app.delete('/pacientes/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const indice = pacientes.findIndex((p) => p.id === id);
+// PUT - Atualizar paciente
+app.put('/pacientes/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { nome, email, nascimento } = req.body ?? {};
 
-  if (indice === -1) {
-    return res.status(404).json({
-      erro: 'Paciente não encontrado'
-    });
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return res.status(400).json({ erro: 'ID inválido' });
+    }
+
+    if (!nome || !email || !nascimento) {
+      return res.status(400).json({
+        erro: 'Nome, e-mail e nascimento são obrigatórios'
+      });
+    }
+
+    const resultado = await pool.query(
+      `UPDATE pacientes
+       SET nome = $1, email = $2, nascimento = $3
+       WHERE id = $4
+       RETURNING *`,
+      [nome, email, nascimento, id]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({
+        erro: 'Paciente não encontrado'
+      });
+    }
+
+    res.json(resultado.rows[0]);
+  } catch (erro) {
+    if (erro.code === '23505') {
+      return res.status(409).json({
+        erro: 'E-mail já cadastrado'
+      });
+    }
+
+    console.error(erro);
+    res.status(500).json({ erro: 'Erro ao atualizar paciente' });
   }
+});
 
-  pacientes.splice(indice, 1);
+// DELETE - Excluir paciente
+app.delete('/pacientes/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
 
-  res.status(204).send();
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return res.status(400).json({ erro: 'ID inválido' });
+    }
+
+    const resultado = await pool.query(
+      'DELETE FROM pacientes WHERE id = $1 RETURNING id',
+      [id]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({
+        erro: 'Paciente não encontrado'
+      });
+    }
+
+    res.status(204).send();
+  } catch (erro) {
+    console.error(erro);
+    res.status(500).json({ erro: 'Erro ao excluir paciente' });
+  }
 });
 
 const PORTA = process.env.PORT || 3000;
-app.listen(PORTA, () => {
-  console.log(`Servidor está rodando em http://localhost:${PORTA}`);
-});
 
+app.listen(PORTA, () => {
+  console.log(`Servidor rodando em http://localhost:${PORTA}`);
+});
