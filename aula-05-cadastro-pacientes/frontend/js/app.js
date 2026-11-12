@@ -16,7 +16,7 @@ const campoNascimento = document.getElementById('nascimento');
 const botaoSalvar = document.getElementById('btn-salvar');
 const botaoCancelar = document.getElementById('btn-cancelar');
 
-// Endereço da API criada na Aula 03
+// EndereÃ§o da API criada na Aula 03
 const URL_API = 'https://api-clinica-alexandre-bertoni.onrender.com/pacientes';
 
 function criarCelula(texto) {
@@ -59,22 +59,26 @@ function renderizarTabela() {
 
         celulaAcoes.appendChild(botaoEditar);
         celulaAcoes.appendChild(botaoExcluir);
-        linha.appendChild(celulaAcoes);    
+        linha.appendChild(celulaAcoes);
 
-        tabela.appendChild(linha);      
+        tabela.appendChild(linha);
     });
 }
 
 function formatarData(dataISO) {
-    const [ano, mes, dia] = dataISO.split('-');
-    return `${dia}/${mes}/${ano}`;
+  if (!dataISO) return '';
+
+  const somenteData = dataISO.slice(0, 10);
+  const [ano, mes, dia] = somenteData.split('-');
+
+  return `${dia}/${mes}/${ano}`;
 }
 
 function iniciarEdicao(paciente) {
     campoId.value = paciente.id;
     campoNome.value = paciente.nome;
     campoEmail.value = paciente.email;
-    campoNascimento.value = paciente.nascimento;
+    campoNascimento.value = paciente.nascimento.slice(0, 10);
 
     botaoSalvar.textContent = 'Atualizar';
     botaoCancelar.classList.remove('d-none');
@@ -117,10 +121,10 @@ async function carregarPacientesIniciais() {
         }
 
     } catch (erro) {
-        console.error('Não foi possível carregar os pacientes:', erro);
+        console.error('NÃ£o foi possÃ­vel carregar os pacientes:', erro);
 
         mensagemCarregando.textContent =
-            'Erro ao carregar pacientes. O servidor está rodando?';
+            'Erro ao carregar pacientes. O servidor estÃ¡ rodando?';
 
         return;
     }
@@ -178,13 +182,13 @@ async function excluirPaciente(id) {
             limparFormulario();
         }
 
-        mostrarMensagem('Paciente excluído com sucesso.', 'success');
+        mostrarMensagem('Paciente excluÃ­do com sucesso.', 'success');
         await carregarPacientesIniciais();
     } catch (erro) {
         mostrarMensagem(erro.message);
     }
 }
-// Cadastro ou atualização pela API
+// Cadastro ou atualizaÃ§Ã£o pela API
 formulario.addEventListener('submit', async (event) => {
     event.preventDefault();
 
@@ -206,7 +210,7 @@ formulario.addEventListener('submit', async (event) => {
     }
 });
 
-// Carrega os pacientes ao abrir a página
+// Carrega os pacientes ao abrir a pÃ¡gina
 carregarPacientesIniciais();
 
 botaoCancelar.addEventListener('click', limparFormulario);

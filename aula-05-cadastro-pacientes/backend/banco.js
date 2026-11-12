@@ -1,9 +1,11 @@
-
 require('dotenv').config();
 
 const fs = require('fs');
 const path = require('path');
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+
+// Mantém as datas no formato AAAA-MM-DD
+types.setTypeParser(1082, (valor) => valor);
 
 const certificado = path.join(__dirname, 'prod-ca-2021.crt');
 

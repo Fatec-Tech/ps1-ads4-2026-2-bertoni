@@ -1,7 +1,7 @@
 
 const express = require('express');
 const cors = require('cors');
-const pool = require('./db');
+const pool = require('./banco');
 
 const app = express();
 
@@ -53,7 +53,7 @@ app.get('/pacientes/:id', async (req, res) => {
     const id = Number(req.params.id);
 
     if (!Number.isSafeInteger(id) || id <= 0) {
-      return res.status(400).json({ erro: 'ID inválido' });
+      return res.status(400).json({ erro: 'ID invÃ¡lido' });
     }
 
     const resultado = await pool.query(
@@ -63,7 +63,7 @@ app.get('/pacientes/:id', async (req, res) => {
 
     if (resultado.rows.length === 0) {
       return res.status(404).json({
-        erro: 'Paciente não encontrado'
+        erro: 'Paciente nÃ£o encontrado'
       });
     }
 
@@ -81,7 +81,7 @@ app.post('/pacientes', async (req, res) => {
 
     if (!nome || !email || !nascimento) {
       return res.status(400).json({
-        erro: 'Nome, e-mail e nascimento são obrigatórios'
+        erro: 'Nome, e-mail e nascimento sÃ£o obrigatÃ³rios'
       });
     }
 
@@ -96,7 +96,7 @@ app.post('/pacientes', async (req, res) => {
   } catch (erro) {
     if (erro.code === '23505') {
       return res.status(409).json({
-        erro: 'E-mail já cadastrado'
+        erro: 'E-mail jÃ¡ cadastrado'
       });
     }
 
@@ -112,12 +112,12 @@ app.put('/pacientes/:id', async (req, res) => {
     const { nome, email, nascimento } = req.body ?? {};
 
     if (!Number.isSafeInteger(id) || id <= 0) {
-      return res.status(400).json({ erro: 'ID inválido' });
+      return res.status(400).json({ erro: 'ID invÃ¡lido' });
     }
 
     if (!nome || !email || !nascimento) {
       return res.status(400).json({
-        erro: 'Nome, e-mail e nascimento são obrigatórios'
+        erro: 'Nome, e-mail e nascimento sÃ£o obrigatÃ³rios'
       });
     }
 
@@ -131,7 +131,7 @@ app.put('/pacientes/:id', async (req, res) => {
 
     if (resultado.rows.length === 0) {
       return res.status(404).json({
-        erro: 'Paciente não encontrado'
+        erro: 'Paciente nÃ£o encontrado'
       });
     }
 
@@ -139,7 +139,7 @@ app.put('/pacientes/:id', async (req, res) => {
   } catch (erro) {
     if (erro.code === '23505') {
       return res.status(409).json({
-        erro: 'E-mail já cadastrado'
+        erro: 'E-mail jÃ¡ cadastrado'
       });
     }
 
@@ -154,7 +154,7 @@ app.delete('/pacientes/:id', async (req, res) => {
     const id = Number(req.params.id);
 
     if (!Number.isSafeInteger(id) || id <= 0) {
-      return res.status(400).json({ erro: 'ID inválido' });
+      return res.status(400).json({ erro: 'ID invÃ¡lido' });
     }
 
     const resultado = await pool.query(
@@ -164,7 +164,7 @@ app.delete('/pacientes/:id', async (req, res) => {
 
     if (resultado.rows.length === 0) {
       return res.status(404).json({
-        erro: 'Paciente não encontrado'
+        erro: 'Paciente nÃ£o encontrado'
       });
     }
 
